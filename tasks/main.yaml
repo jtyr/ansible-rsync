@@ -1,0 +1,69 @@
+---
+
+- name: Install rsync
+  package:
+    name: "{{ rsync_pkg }}"
+  tags:
+    - rsync_pkg
+
+- name: Create destination directory
+  file:
+    path: "{{ rsync_dst_dir }}"
+    mode: "{{ rsync_dst_dir_mode }}"
+    state: directory
+  when: >
+    rsync_dst_dir is not none and
+    rsync_dst_dir | length > 0
+  tags:
+    - rsync_conf
+
+- name: Create parent directory of the src directory
+  file:
+    path: "{{ rsync_src_dir | regex_replace('/$', '') | dirname }}"
+    mode: "{{ rsync_dst_dir_mode }}"
+    state: directory
+  when: >
+    rsync_dst_dir is not none and
+    rsync_dst_dir | length > 0 and
+    rsync_dst_dir != rsync_src_dir
+  tags:
+    - rsync_conf
+
+- name: Create symlink between the src and dst directory
+  file:
+    src: "{{ rsync_dst_dir }}"
+    dest: "{{ rsync_src_dir | regex_replace('/$', '') }}"
+    state: link
+  when: >
+    rsync_dst_dir is not none and
+    rsync_dst_dir | length > 0 and
+    rsync_dst_dir != rsync_src_dir
+  tags:
+    - rsync_conf
+
+- name: Create directory for the SSH private key
+  file:
+    path: "{{ rsync_ssh_priv_key_dest | dirname }}"
+    state: directory
+  when: >
+    rsync_ssh_priv_key is not none and
+    rsync_ssh_priv_key | length > 0
+  tags:
+    - rsync_conf
+
+- name: Copy SSH private key
+  copy:
+    dest: "{{ rsync_ssh_priv_key_dest }}"
+    mode: 0600
+    content: "{{ rsync_ssh_priv_key }}"
+  when: >
+    rsync_ssh_priv_key is not none and
+    rsync_ssh_priv_key | length > 0
+  tags:
+    - rsync_conf
+
+- name: Run rsync
+  shell: "{{ rsync_cmd }}"
+  changed_when: false
+  tags:
+    - rsync_cmd
